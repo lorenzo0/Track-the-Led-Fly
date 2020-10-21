@@ -1,19 +1,21 @@
 #define EI_ARDUINO_INTERRUPTED_PIN
 #include <EnableInterrupt.h>
-#define ENABLE_INT_IN_PIN 9
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#define primoLedVerde 6
-#define secondoLedVerde 5
-#define terzoLedVerde 4
-#define quartoLedVerde 3
+#define primoLedVerde 7
+//#define secondoLedVerde 6
+#define terzoLedVerde 5
+//#define quartoLedVerde 4
 
-#define primoBottone 12
-#define secondoBottone 13
-#define terzoBottone 10
-#define quartoBottone 8
+#define primoBottone 8
+//#define secondoBottone 1
+#define terzoBottone 2
+//#define quartoBottone 3
+
+volatile uint8_t InterruptedPinShared;
+volatile uint8_t PinStateShared;
 
 unsigned char ledVerdi[4];
 unsigned char bottoni[4];
@@ -23,14 +25,14 @@ boolean firstLedOn;
 
 void setup() {
   ledVerdi[0] = primoLedVerde;
-  ledVerdi[1] = secondoLedVerde;
+  ledVerdi[1] = 0;
   ledVerdi[2] = terzoLedVerde;
-  ledVerdi[3] = quartoLedVerde;
+  ledVerdi[3] = 0;
 
   bottoni[0] = primoBottone;
-  bottoni[1] = secondoBottone;
+  bottoni[1] = 0;
   bottoni[2] = terzoBottone;
-  bottoni[3] = quartoBottone;
+  bottoni[3] = 0;
 
   for(int i=0; i<4; i++){
     pinMode(ledVerdi[i], OUTPUT);
@@ -74,9 +76,16 @@ void loop() {
 
   currentLedOn = flashLed();
   digitalWrite(ledVerdi[nextLedOn], HIGH);
+  //Serial.println(currentLedOn);
   //Serial.println(punteggio);
   delay(1000);
-  
+  static uint8_t InterruptedPin;
+  static uint8_t PinState;
+  noInterrupts();      
+   InterruptedPin = InterruptedPinShared;
+   PinState = PinStateShared;
+   //Serial.println(InterruptedPin);
+  interrupts();
 }
 
 int flashLed() {
@@ -121,18 +130,20 @@ int flashLed() {
 }
 
 void incPunteggio(){
-  
-
+  InterruptedPinShared=arduinoInterruptedPin;
+  PinStateShared=arduinoPinState;
+  Serial.println(currentLedOn);
+  Serial.println(bottoni[InterruptedPinShared]);
+  noInterrupts();
   for(int i=0; i<4; i++){
-    bottoniCliccati[i] = digitalRead(bottoni[i]);
-    if(bottoniCliccati[i] == 1){
-       catchButton = i;
+    if(bottoni[i]==bottoni[InterruptedPinShared] && currentLedOn==i ){
+          punteggio++;
+          Serial.print("pin: ");
+          Serial.println(InterruptedPinShared);
+          Serial.print("Punteggio: ");
+          Serial.println(punteggio);
     }
   }
-  
-  if(currentLedOn == catchButton){
-        punteggio++;
-  }
-  Serial.println(catchButton);
-  Serial.println(punteggio);
+  interrupts();
+  //catchButton=0;
 }
