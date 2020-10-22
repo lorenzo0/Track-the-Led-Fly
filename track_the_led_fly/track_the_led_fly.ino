@@ -14,13 +14,16 @@
 #define terzoBottone 2
 //#define quartoBottone 3
 
+#define potenziometro A0 
+#define ledRosso 13
+
 volatile uint8_t InterruptedPinShared;
 volatile uint8_t PinStateShared;
 
 unsigned char ledVerdi[4];
 unsigned char bottoni[4];
 unsigned int bottoniCliccati[4];
-int currentLedOn, nextLedOn, temp, punteggio, catchButton;
+int currentLedOn, nextLedOn, temp, punteggio, frequenzaPotenziometro, level, levelGame;
 boolean firstLedOn;
 
 void setup() {
@@ -40,56 +43,65 @@ void setup() {
     enableInterrupt(bottoni[i], incPunteggio, RISING);
   }
 
+  pinMode(potenziometro, INPUT);
+  pinMode(ledRosso, OUTPUT);
+
   currentLedOn = 0;
   nextLedOn = 0;
   temp = 0;
   punteggio = 0;
-  catchButton = 0;
+  frequenzaPotenziometro = 0;
+  level = 0;
+  levelGame = 0;
   firstLedOn = false;  
+  digitalWrite(ledRosso, HIGH);
   Serial.begin(9600);
 
 }
 
 void loop() {
 
-  /*for(int i=0; i<4; i++){
-    bottoniCliccati[i] = digitalRead(bottoni[i]);
-  }
-
-  /*bottoniCliccati[3] = digitalRead(bottoni[3]);
-  Serial.println(bottoniCliccati[3]);
-
-  if(bottoniCliccati[3] == 1){
-    //count++;
-    digitalWrite(ledVerdi[3], HIGH);
-  }
-
-  digitalWrite(ledVerdi[3],LOW);
-  bottoniCliccati[1] = digitalRead(bottoni[1]);
-  bottoniCliccati[2] = digitalRead(bottoni[2]);
-  bottoniCliccati[3] = digitalRead(bottoni[3]);
-  */
+  if !(digitalRead(ledRosso) == HIGH){
   
-  for(int i=0; i<4; i++){
-    digitalWrite(ledVerdi[i], LOW);
+    for(int i=0; i<4; i++){
+      digitalWrite(ledVerdi[i], LOW);
+    }
+  
+    static uint8_t InterruptedPin;
+    static uint8_t PinState;
+  
+    levelGame = getLevel();
+    currentLedOn = flashLed();
+    
+    noInterrupts();      
+     InterruptedPin = InterruptedPinShared;
+     PinState = PinStateShared;
+     frequenzaPotenziometro = analogRead(potenziometro);
+    interrupts();
+  
+    Serial.print("Livello: ");
+    Serial.println(levelGame);
+  
+    for (int fadeValue = 0 ; fadeValue <= 255; fadeValue += 15) {
+      analogWrite(ledVerdi[nextLedOn], fadeValue);
+      delay(50);
+    }
+  
+    for (int fadeValue = 255 ; fadeValue >= 0; fadeValue -= 15) {
+      analogWrite(ledVerdi[nextLedOn], fadeValue);
+      delay(50);
+    }  
+  }else{
+    
+    //10 secondi per decidere il livello
+    delay(10000);
+    digitalWrite(ledRosso, LOW);
+    
   }
-
-  currentLedOn = flashLed();
-  digitalWrite(ledVerdi[nextLedOn], HIGH);
-  //Serial.println(currentLedOn);
-  //Serial.println(punteggio);
-  delay(1000);
-  static uint8_t InterruptedPin;
-  static uint8_t PinState;
-  noInterrupts();      
-   InterruptedPin = InterruptedPinShared;
-   PinState = PinStateShared;
-   //Serial.println(InterruptedPin);
-  interrupts();
+  
 }
 
 int flashLed() {
-
 
   if(firstLedOn == false){
     nextLedOn=0+rand()%4;
@@ -102,7 +114,7 @@ int flashLed() {
         while(currentLedOn != temp){
             temp++;
         }
-        if(temp == 4){
+        if(temp == 2){  //era 4
           nextLedOn = 0;
         }else{
           nextLedOn = temp;
@@ -113,13 +125,13 @@ int flashLed() {
       
         while(currentLedOn != temp){
           if(temp == -1){
-            temp = 3;
+            temp = 1; //era 3
           }else{
             temp--;
           }
         }
         if(temp == -1){
-          nextLedOn = 3;
+          nextLedOn = 1;  //era 3
         }else{
           nextLedOn = temp;
         }
@@ -130,10 +142,13 @@ int flashLed() {
 }
 
 void incPunteggio(){
+  
   InterruptedPinShared=arduinoInterruptedPin;
   PinStateShared=arduinoPinState;
+  
   Serial.println(currentLedOn);
   Serial.println(bottoni[InterruptedPinShared]);
+  
   noInterrupts();
   for(int i=0; i<4; i++){
     if(bottoni[i]==bottoni[InterruptedPinShared] && currentLedOn==i ){
@@ -145,5 +160,50 @@ void incPunteggio(){
     }
   }
   interrupts();
-  //catchButton=0;
+}
+
+void redLedGone(){
+  Serial.println("Ci sono");
+}
+
+int getLevel(){
+
+  Serial.println(frequenzaPotenziometro);
+  
+  switch(frequenzaPotenziometro){
+    case 0 ... 128:
+      level = 1;
+    break;
+    
+    case 129 ... 256:
+      level = 2;
+    break;
+    
+    case 257 ... 384:
+      level = 3;
+    break;
+    
+    case 385 ... 513:
+      level = 4;
+    break;
+
+    case 514 ... 641:
+      level = 5;
+    break;
+
+    case 642 ... 769:
+      level = 6;
+    break;
+
+    case 770 ... 897:
+      level = 7;
+    break;
+
+    case 898 ... 1023:
+      level = 8;
+    break;
+    
+  }
+
+  return level;
 }
