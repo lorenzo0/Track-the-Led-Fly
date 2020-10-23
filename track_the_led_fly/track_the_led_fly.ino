@@ -24,7 +24,7 @@ unsigned char ledVerdi[4];
 unsigned char bottoni[4];
 unsigned int bottoniCliccati[4];
 int currentLedOn, nextLedOn, temp, punteggio, frequenzaPotenziometro, level, levelGame;
-boolean firstLedOn;
+boolean firstLedOn, checkCorrectClick;
 
 void setup() {
   ledVerdi[0] = primoLedVerde;
@@ -53,7 +53,7 @@ void setup() {
   frequenzaPotenziometro = 0;
   level = 0;
   levelGame = 0;
-  firstLedOn = false;  
+  firstLedOn, checkCorrectClick = false;  
   digitalWrite(ledRosso, HIGH);
   Serial.begin(9600);
 
@@ -61,7 +61,7 @@ void setup() {
 
 void loop() {
 
-  if !(digitalRead(ledRosso) == HIGH){
+  if (!(digitalRead(ledRosso) == HIGH) || checkCorrectClick == true){
   
     for(int i=0; i<4; i++){
       digitalWrite(ledVerdi[i], LOW);
@@ -94,6 +94,7 @@ void loop() {
   }else{
     
     //10 secondi per decidere il livello
+    Serial.println("Hai 10 secondi per scegliere la difficoltà della partita!");
     delay(10000);
     digitalWrite(ledRosso, LOW);
     
@@ -157,18 +158,14 @@ void incPunteggio(){
           Serial.println(InterruptedPinShared);
           Serial.print("Punteggio: ");
           Serial.println(punteggio);
+          checkCorrectClick = true;
     }
   }
   interrupts();
 }
-
-void redLedGone(){
-  Serial.println("Ci sono");
-}
-
 int getLevel(){
 
-  Serial.println(frequenzaPotenziometro);
+  //Serial.println(frequenzaPotenziometro);
   
   switch(frequenzaPotenziometro){
     case 0 ... 128:
