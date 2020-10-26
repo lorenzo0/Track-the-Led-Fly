@@ -70,48 +70,30 @@ void loop() {
     
     static uint8_t InterruptedPin;
     static uint8_t PinState;
-  
-    //tempInitialGameTime = getLevel();
-    tempInitialGameTime = 200;
 
-    Serial.print("Initial game time:");
-    Serial.println(initialGameTime);
-    Serial.print("Temp game time:");
-    Serial.println(tempInitialGameTime);
-    Serial.print("Game time:");
-    Serial.println(gameTime);
-    
-    if(tempInitialGameTime != initialGameTime){
-      timesUp();
-    }
     currentLedOn = flashLed();
     
     noInterrupts();      
      InterruptedPin = InterruptedPinShared;
      PinState = PinStateShared;
-     //frequenzaPotenziometro = analogRead(potenziometro);
-     //frequenzaPotenziometro = 200;
     interrupts();
   
-    /*Serial.print("Livello: ");
-    Serial.println(levelGame);
-    
+    /*
     Timer1.initialize(gameTime);
     Timer1.start();
     Timer1.attachInterrupt(timesUp, gameTime);
+    */
 
-    Serial.print("Game time:");
-    Serial.println(gameTime);*/
-    
-    for (int fadeValue = 0 ; fadeValue <= gameTime/2; fadeValue += (gameTime/2)/8) {
+    for (int fadeValue = 0 ; fadeValue <= 255; fadeValue += 15) {
       analogWrite(ledVerdi[nextLedOn], fadeValue);
-      delay(100);
+      delay(gameTime/2);
     }
-  
-    for (int fadeValue = 255 ; fadeValue > gameTime/2; fadeValue -= (gameTime/2)/8) {
+    
+    for (int fadeValue = 255 ; fadeValue > 0; fadeValue -= 15) {
       analogWrite(ledVerdi[nextLedOn], fadeValue);
-      delay(100);
+      delay((gameTime/2));
     }  
+    
   }else{
 
     for(int i=0; i<4; i++){
@@ -119,14 +101,15 @@ void loop() {
     }
 
     digitalWrite(ledRosso, HIGH);
-    
-    Serial.println("Hai 10 secondi per scegliere la difficoltà della partita!");
-    delay(10000);
+        
+    Serial.print("Game Over - Score: ");
+    Serial.println(punteggio);
+    delay(2000);
     digitalWrite(ledRosso, LOW);
     restartSystem = false;
 
-    //initialGameTime = getLevel();
-    initialGameTime = 200;
+    frequenzaPotenziometro = analogRead(potenziometro);
+    getLevel();
     gameTime = initialGameTime;
     tempInitialGameTime = initialGameTime;
     
@@ -178,20 +161,6 @@ void incPunteggio(){
   
   InterruptedPinShared=arduinoInterruptedPin;
   PinStateShared=arduinoPinState;
-
-  /*Serial.print("Current Led On: ");
-  Serial.println(currentLedOn);
-  Serial.print("Clicked button: ");
-  Serial.println(bottoni[InterruptedPinShared]);
-  Serial.print("Interrupted Pin: ");
-  Serial.println(InterruptedPinShared);
-
-  for(int i=0; i<4; i++){
-    if(bottoni[i] == InterruptedPinShared){
-      Serial.println("taac");
-      Serial.println(i);
-    }
-  }*/
   
   noInterrupts();
   checkCorrectClick = false;
@@ -203,7 +172,6 @@ void incPunteggio(){
           Serial.println(punteggio);
           checkCorrectClick = true;
           
-          //finalGameTime=(gameTime/8)*7;
           gameTime = (gameTime/8)*7;
 
     }
@@ -219,42 +187,42 @@ int getLevel(){
   switch(frequenzaPotenziometro){
     case 0 ... 128:
       level = 1;
-      initialGameTime = 8000000;
+      initialGameTime = 800;
     break;
     
     case 129 ... 256:
       level = 2;
-      initialGameTime = 7000000;
+      initialGameTime = 700;
     break;
     
     case 257 ... 384:
       level = 3;
-      initialGameTime = 6000000;
+      initialGameTime = 600;
     break;
     
     case 385 ... 513:
       level = 4;
-      initialGameTime = 5000000;
+      initialGameTime = 500;
     break;
 
     case 514 ... 641:
       level = 5;
-      initialGameTime = 4000000;
+      initialGameTime = 400;
     break;
 
     case 642 ... 769:
       level = 6;
-      initialGameTime = 3000000;
+      initialGameTime = 300;
     break;
 
     case 770 ... 897:
       level = 7;
-      initialGameTime = 2000000;
+      initialGameTime = 200;
     break;
 
     case 898 ... 1023:
       level = 8;
-      initialGameTime = 1000000;
+      initialGameTime = 100;
     break;
     
   }
