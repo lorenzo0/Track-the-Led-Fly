@@ -1,5 +1,5 @@
 /*
- * Authors: Castelli Giorgia
+ * Authors: Castelli Giorgia 873787
  *          Pisanò Lorenzo  900590
  *          
    * Subject: Track the led fly
@@ -8,7 +8,6 @@
 #define EI_ARDUINO_INTERRUPTED_PIN
 #include <EnableInterrupt.h>
 #include "TimerOne.h"
-//#include "TimerThree.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -37,7 +36,7 @@ unsigned int bottoniCliccati[4];
 
 int currentLedOn, nextLedOn, temp, punteggio, frequenzaPotenziometro, level, levelGame, checkFirst;
 boolean firstLedOn, checkCorrectClick, restartSystem, firstStart;
-long gameTime, initialGameTime, randomGameTime, tempInitialGameTime;
+long gameTime, initialGameTime, randomGameTime, tempInitialGameTime, microGameTime;
 
 /* 
  *  La procedura setup serve ad inizializzare tutti i componenti e variabili
@@ -69,13 +68,15 @@ void setup() {
   temp, punteggio = 0;
   frequenzaPotenziometro = 0;
   level, levelGame = 0;
-  initialGameTime, tempInitialGameTime, gameTime = 0;
+  initialGameTime, tempInitialGameTime, gameTime, microGameTime = 0;
   
   firstLedOn, checkCorrectClick = false;
   restartSystem, firstStart = true;  
   
   Serial.begin(9600);
   Serial.println("Welcome to the Track to Led Fly Game. Press Key T1 to Start");
+
+  Timer1.initialize();
 }
 
 /*
@@ -108,7 +109,8 @@ void setup() {
  *  
 */
 
-void loop() {  
+void loop() {
+  
   if (!(firstStart == false))
     initialGameState();
   else{
@@ -127,13 +129,10 @@ void loop() {
        InterruptedPin = InterruptedPinShared;
        PinState = PinStateShared;
       interrupts();
-    
-      /*
-        Timer1.initialize(gameTime);
-        Timer1.start();
-        Timer1.attachInterrupt(timesUp, gameTime);
-      */
-  
+
+      microGameTime = gameTime*10000;
+      Timer1.setPeriod(microGameTime);
+        
       for (int fadeValue = 0 ; fadeValue <= 255; fadeValue += 15) {
         analogWrite(ledVerdi[nextLedOn], fadeValue);
         delay(gameTime/2);
@@ -146,6 +145,8 @@ void loop() {
   
       if(checkCorrectClick == false && checkFirst != -1)
           timesUp();
+
+      Timer1.attachInterrupt(timesUp);
       
     }else{
   
@@ -281,6 +282,8 @@ void incPunteggio(){
     for(int i=0; i<4; i++){ 
       if(bottoni[i] == InterruptedPinShared && currentLedOn==i && restartSystem == false ){
             punteggio++;
+
+            Timer1.stop();
             
             Serial.print("Tracking the fly: pos ");
             Serial.println(currentLedOn);
