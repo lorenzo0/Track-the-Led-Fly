@@ -35,9 +35,9 @@ unsigned char ledVerdi[4];
 unsigned char bottoni[4];
 unsigned int bottoniCliccati[4];
 
-int currentLedOn, nextLedOn, temp, punteggio, frequenzaPotenziometro, level, levelGame, checkFirst;
-boolean firstLedOn, checkCorrectClick, restartSystem, firstStart;
-long gameTime, initialGameTime, randomGameTime, tempInitialGameTime;
+int currentLedOn, nextLedOn, temp, punteggio, frequenzaPotenziometro, level, levelGame;
+boolean firstLedOn, checkCorrectClick, restartSystem, firstStart, tempStart;
+long gameTime, initialGameTime, randomGameTime, tempInitialGameTime, microGameTime;
 
 /* 
  *  La procedura setup serve ad inizializzare tutti i componenti e variabili
@@ -65,14 +65,14 @@ void setup() {
   pinMode(potenziometro, INPUT);
   pinMode(ledRosso, OUTPUT);
 
-  currentLedOn, nextLedOn, checkFirst = -1;
+  currentLedOn, nextLedOn = -1;
   temp, punteggio = 0;
   frequenzaPotenziometro = 0;
   level, levelGame = 0;
-  initialGameTime, tempInitialGameTime, gameTime = 0;
+  initialGameTime, tempInitialGameTime, gameTime, microGameTime = 0;
   
   firstLedOn, checkCorrectClick = false;
-  restartSystem, firstStart = true;  
+  restartSystem, firstStart, tempStart = true;  
   
   Serial.begin(9600);
   Serial.println("Welcome to the Track to Led Fly Game. Press Key T1 to Start");
@@ -127,12 +127,10 @@ void loop() {
        InterruptedPin = InterruptedPinShared;
        PinState = PinStateShared;
       interrupts();
-    
-      /*
-        Timer1.initialize(gameTime);
-        Timer1.start();
-        Timer1.attachInterrupt(timesUp, gameTime);
-      */
+
+      microGameTime = gameTime*1000000;
+      Timer1.initialize(microGameTime);
+      Timer1.start();
   
       for (int fadeValue = 0 ; fadeValue <= 255; fadeValue += 15) {
         analogWrite(ledVerdi[nextLedOn], fadeValue);
@@ -143,9 +141,11 @@ void loop() {
         analogWrite(ledVerdi[nextLedOn], fadeValue);
         delay((gameTime/2));
       }  
+
+      Timer1.attachInterrupt(timesUp);
   
-      if(checkCorrectClick == false && checkFirst != -1)
-          timesUp();
+      /*if(checkCorrectClick == false)
+          timesUp();*/
       
     }else{
   
@@ -279,8 +279,11 @@ void incPunteggio(){
   }else{
     noInterrupts();
     for(int i=0; i<4; i++){ 
-      if(bottoni[i] == InterruptedPinShared && currentLedOn==i && restartSystem == false ){
+      if(bottoni[i] == InterruptedPinShared && currentLedOn==i  
+            && checkCorrectClick == false ){
             punteggio++;
+
+            Timer1.stop();
             
             Serial.print("Tracking the fly: pos ");
             Serial.println(currentLedOn);
@@ -361,8 +364,8 @@ int getLevel(){
  * 
 */
 void timesUp(){
-  restartSystem = true;
-  Serial.print("Game Over - Score: ");
-  Serial.println(punteggio);
-  punteggio = 0;
+    restartSystem = true;
+    Serial.print("Game Over - Score: ");
+    Serial.println(punteggio);
+    punteggio = 0;
 }
