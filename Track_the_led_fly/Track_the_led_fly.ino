@@ -1,6 +1,6 @@
 /*
- * Authors: Castelli Giorgia 873787
- *          Pisanò Lorenzo  900590
+ * Authors: Castelli Giorgia  873787
+ *          Pisanò Lorenzo    900590
  *          
    * Subject: Track the led fly
 */
@@ -100,6 +100,10 @@ void setup() {
  *  La consegna chiede inoltre che i led debbano - pulsare -. Viene dunque interpretata la
  *  richiesta di fading dei led, gestita tramite un passaggio di dati analogici (0-255) che vanno
  *  a definire la lucentezza del diodo.
+ *  
+ *  Timer1 tramite il metodo attachInterrupt() consente di terminare il gioco nel caso in cui
+ *  il giocatore non prema nessun pulsante prima che il led si spenga. l'Interrupt viene chiamata 
+ *  quando il Timer1 termina, quindi viene impostato sul tempo di gioco (gameTime).
  *  
  *  -------
  *  
