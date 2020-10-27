@@ -148,7 +148,6 @@ void loop() {
         delay((gameTime/2));
       }  
 
-      Timer1.attachInterrupt(timesUp);
       
     }else{
   
@@ -295,6 +294,8 @@ void incPunteggio(){
             gameTime = (gameTime/8)*7;            
             randomTime();
       }
+      else
+        Timer1.attachInterrupt(timesUp);
     }
     interrupts();
   }
