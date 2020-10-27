@@ -68,13 +68,15 @@ void setup() {
   temp, punteggio = 0;
   frequenzaPotenziometro = 0;
   level, levelGame = 0;
-  initialGameTime, tempInitialGameTime, gameTime = 0;
+  initialGameTime, tempInitialGameTime, gameTime, microGameTime = 0;
   
   firstLedOn, checkCorrectClick = false;
   restartSystem, firstStart = true;  
   
   Serial.begin(9600);
   Serial.println("Welcome to the Track to Led Fly Game. Press Key T1 to Start");
+
+  Timer1.initialize();
 }
 
 /*
@@ -107,7 +109,8 @@ void setup() {
  *  
 */
 
-void loop() {  
+void loop() {
+  
   if (!(firstStart == false))
     initialGameState();
   else{
@@ -127,9 +130,8 @@ void loop() {
        PinState = PinStateShared;
       interrupts();
 
-      microGameTime = gameTime*1000000;
-      Timer1.initialize(gameTime);
-      Timer1.start();
+      microGameTime = gameTime*10000;
+      Timer1.setPeriod(microGameTime);
         
       for (int fadeValue = 0 ; fadeValue <= 255; fadeValue += 15) {
         analogWrite(ledVerdi[nextLedOn], fadeValue);
@@ -280,6 +282,8 @@ void incPunteggio(){
     for(int i=0; i<4; i++){ 
       if(bottoni[i] == InterruptedPinShared && currentLedOn==i && restartSystem == false ){
             punteggio++;
+
+            Timer1.stop();
             
             Serial.print("Tracking the fly: pos ");
             Serial.println(currentLedOn);
