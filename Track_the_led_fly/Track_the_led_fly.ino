@@ -12,18 +12,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define primoLedVerde 7
-#define secondoLedVerde 6
-#define terzoLedVerde 5
-#define quartoLedVerde 4
+#define primoLedVerde 10
+#define secondoLedVerde 9
+#define terzoLedVerde 6
+#define quartoLedVerde 5
 
-#define primoBottone 8
-#define secondoBottone 9
-#define terzoBottone 10
-#define quartoBottone 11
+#define primoBottone 4
+#define secondoBottone 7
+#define terzoBottone 8
+#define quartoBottone 12
 
 #define potenziometro A0 
-#define ledRosso 12
+#define ledRosso 11
+
+/* Costante da definire per la definizione del tempo */
+const long k=0.8;
 
 volatile uint8_t InterruptedPinShared;
 volatile uint8_t PinStateShared;
@@ -31,8 +34,8 @@ volatile uint8_t PinStateShared;
 unsigned char ledVerdi[4];
 unsigned char bottoni[4];
 unsigned int bottoniCliccati[4];
-const int k=2;
-int currentLedOn, nextLedOn, temp, punteggio, frequenzaPotenziometro, level, levelGame;
+
+int currentLedOn, nextLedOn, temp, punteggio, frequenzaPotenziometro, level, levelGame, checkFirst;
 boolean firstLedOn, checkCorrectClick, restartSystem, firstStart;
 long gameTime, initialGameTime, randomGameTime, tempInitialGameTime;
 
@@ -62,7 +65,7 @@ void setup() {
   pinMode(potenziometro, INPUT);
   pinMode(ledRosso, OUTPUT);
 
-  currentLedOn, nextLedOn = -1;
+  currentLedOn, nextLedOn, checkFirst = -1;
   temp, punteggio = 0;
   frequenzaPotenziometro = 0;
   level, levelGame = 0;
@@ -141,9 +144,8 @@ void loop() {
         delay((gameTime/2));
       }  
   
-      if(checkCorrectClick == false)
+      if(checkCorrectClick == false && checkFirst != -1)
           timesUp();
-      
       
     }else{
   
@@ -203,7 +205,7 @@ int flashLed() {
   checkCorrectClick = false;
 
   if(firstLedOn == false){
-    nextLedOn=0+rand()%4; //era 2
+    nextLedOn=0+rand()%4;
     firstLedOn = true;
   }else{
     
