@@ -11,18 +11,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define primoLedVerde 10
-#define secondoLedVerde 9
-#define terzoLedVerde 6
-#define quartoLedVerde 5
+#define greenLED1 10
+#define greenLED2 9
+#define greenLED3 6
+#define greenLED4 5
 
-#define primoBottone 4
-#define secondoBottone 7
-#define terzoBottone 8
-#define quartoBottone 12
+#define button1 4
+#define button2 7
+#define button3 8
+#define button4 12
 
-#define potenziometro A0 
-#define ledRosso 11
+#define potentiometer A0 
+#define redLED 11
 
 /* Costante da definire per la definizione del tempo */
 const long k=0.8;
@@ -30,11 +30,10 @@ const long k=0.8;
 volatile uint8_t InterruptedPinShared;
 volatile uint8_t PinStateShared;
 
-unsigned char ledVerdi[4];
-unsigned char bottoni[4];
-unsigned int bottoniCliccati[4];
+unsigned char greenLEDs[4];
+unsigned char buttons[4];
 
-int currentLedOn, nextLedOn, temp, punteggio, frequenzaPotenziometro, level, levelGame, checkFirst;
+int currentLedOn, nextLedOn, temp, score, frequencyPot, level, levelGame;
 boolean firstLedOn, checkCorrectClick, restartSystem, firstStart;
 long gameTime, initialGameTime, randomGameTime, tempInitialGameTime, microGameTime;
 
@@ -45,28 +44,28 @@ long gameTime, initialGameTime, randomGameTime, tempInitialGameTime, microGameTi
  *  la compattezza del programma.
 */
 void setup() {
-  ledVerdi[0] = primoLedVerde;
-  ledVerdi[1] = secondoLedVerde;
-  ledVerdi[2] = terzoLedVerde;
-  ledVerdi[3] = quartoLedVerde;
+  greenLEDs[0] = greenLED1;
+  greenLEDs[1] = greenLED2;
+  greenLEDs[2] = greenLED3;
+  greenLEDs[3] = greenLED4;
 
-  bottoni[0] = primoBottone;
-  bottoni[1] = secondoBottone;
-  bottoni[2] = terzoBottone;
-  bottoni[3] = quartoBottone;
+  buttons[0] = button1;
+  buttons[1] = button2;
+  buttons[2] = button3;
+  buttons[3] = button4;
 
   for(int i=0; i<4; i++){
-    pinMode(ledVerdi[i], OUTPUT);
-    pinMode(bottoni[i], INPUT);
-    enableInterrupt(bottoni[i], incPunteggio, RISING);
+    pinMode(greenLEDs[i], OUTPUT);
+    pinMode(buttons[i], INPUT);
+    enableInterrupt(buttons[i], incPunteggio, RISING);
   }
 
-  pinMode(potenziometro, INPUT);
-  pinMode(ledRosso, OUTPUT);
+  pinMode(potentiometer, INPUT);
+  pinMode(redLED, OUTPUT);
 
-  currentLedOn, nextLedOn, checkFirst = -1;
-  temp, punteggio = 0;
-  frequenzaPotenziometro = 0;
+  currentLedOn, nextLedOn = -1;
+  temp, score = 0;
+  frequencyPot = 0;
   level, levelGame = 0;
   initialGameTime, tempInitialGameTime, gameTime, microGameTime = 0;
   
@@ -117,7 +116,7 @@ void loop() {
     if (!(restartSystem == true)){
     
       for(int i=0; i<4; i++){
-        digitalWrite(ledVerdi[i], LOW);
+        digitalWrite(greenLEDs[i], LOW);
       }
       
       static uint8_t InterruptedPin;
@@ -134,34 +133,31 @@ void loop() {
       Timer1.setPeriod(microGameTime);
         
       for (int fadeValue = 0 ; fadeValue <= 255; fadeValue += 15) {
-        analogWrite(ledVerdi[nextLedOn], fadeValue);
+        analogWrite(greenLEDs[nextLedOn], fadeValue);
         delay(gameTime/2);
       }
       
       for (int fadeValue = 255 ; fadeValue > 0; fadeValue -= 15) {
-        analogWrite(ledVerdi[nextLedOn], fadeValue);
+        analogWrite(greenLEDs[nextLedOn], fadeValue);
         delay((gameTime/2));
       }  
-  
-      if(checkCorrectClick == false && checkFirst != -1)
-          timesUp();
 
       Timer1.attachInterrupt(timesUp);
       
     }else{
   
       for(int i=0; i<4; i++){
-        digitalWrite(ledVerdi[i], LOW);
+        digitalWrite(greenLEDs[i], LOW);
       }
   
-      digitalWrite(ledRosso, HIGH);
+      digitalWrite(redLED, HIGH);
           
       delay(2000);
       
-      digitalWrite(ledRosso, LOW);
+      digitalWrite(redLED, LOW);
       restartSystem = false;
   
-      frequenzaPotenziometro = analogRead(potenziometro);
+      frequencyPot = analogRead(potentiometer);
       getLevel();
       gameTime = initialGameTime;
       tempInitialGameTime = initialGameTime;
@@ -184,12 +180,12 @@ void loop() {
 void initialGameState(){
 
   for (int fadeValue = 0 ; fadeValue <= 255; fadeValue += 15) {
-      analogWrite(ledRosso, fadeValue);
+      analogWrite(redLED, fadeValue);
       delay(60);
   }
 
   for (int fadeValue = 255 ; fadeValue > 0; fadeValue -= 15) {
-      analogWrite(ledRosso, fadeValue);
+      analogWrite(redLED, fadeValue);
       delay(60);
   }  
 }
@@ -257,7 +253,7 @@ void randomTime(){
  * incPunteggio nasce come procedura che viene richiamata nel momento in cui
  * si verifica un'interruzione da parte di uno dei pulsanti tattili.
  * 
- * enableInterrupt(bottoni[i], incPunteggio, RISING);
+ * enableInterrupt(buttons[i], incPunteggio, RISING);
  * 
  * Questo, prendendo il valore assegnato nel loop alle variabili volatile,
  * analizza la posizione del pulsante premuto e del led correntemente attivo.
@@ -267,6 +263,9 @@ void randomTime(){
  * per evitare di avere problemi di concorrenza durante la gestione del punteggio
  * e l'assegnazione del nuovo tempo di gioco.
  * 
+ * Inoltre viene fermato Timer1 nel caso in cui il bottone cliccato sia quello
+ * giusto, riparte poi nel loop con Time1.setPeriod().
+ * 
  * 
 */
 void incPunteggio(){
@@ -274,17 +273,17 @@ void incPunteggio(){
   InterruptedPinShared=arduinoInterruptedPin;
   PinStateShared=arduinoPinState;
 
-  if(firstStart == true & bottoni[0] == InterruptedPinShared){
+  if(firstStart == true & buttons[0] == InterruptedPinShared){
     firstStart = false;
     Serial.println("GO!");
   }else{
     noInterrupts();
     for(int i=0; i<4; i++){ 
-      if(bottoni[i] == InterruptedPinShared && currentLedOn==i && restartSystem == false ){
-            punteggio++;
+      if(buttons[i] == InterruptedPinShared && currentLedOn==i && restartSystem == false ){
+            score++;
 
             Timer1.stop();
-            
+  
             Serial.print("Tracking the fly: pos ");
             Serial.println(currentLedOn);
             checkCorrectClick = true;
@@ -307,7 +306,7 @@ void incPunteggio(){
 */
 int getLevel(){
   
-  switch(frequenzaPotenziometro){
+  switch(frequencyPot){
     case 0 ... 128:
       level = 1;
       initialGameTime = 800;
@@ -366,6 +365,6 @@ int getLevel(){
 void timesUp(){
   restartSystem = true;
   Serial.print("Game Over - Score: ");
-  Serial.println(punteggio);
-  punteggio = 0;
+  Serial.println(score);
+  score = 0;
 }
