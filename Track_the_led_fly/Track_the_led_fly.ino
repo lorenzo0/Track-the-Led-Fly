@@ -132,11 +132,12 @@ void loop() {
       delay(2000);
       
       digitalWrite(redLED, LOW);
-      
-      frequencyPot = analogRead(potentiometer);
+
+      firstStart =true;
+      /*frequencyPot = analogRead(potentiometer);
       gameTime = getLevel();
       microGameTime = (gameTime*10000);
-      play();
+      play();*/
     }
   }
   
@@ -299,11 +300,16 @@ void incPunteggio(){
             Serial.print("Tracking the fly: pos ");
             Serial.println(currentLedOn);
             
-            //checkCorrectClick = true;
+            checkCorrectClick = true;
             
             gameTime = (gameTime/8)*7;            
             randomTime();
             play();
+            break;
+      }else{
+        checkCorrectClick = false;
+        Serial.println("bottone sbagliato"); // da togliese
+        restartSystem=true;
       }
     }
    interrupts();
