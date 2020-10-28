@@ -1,4 +1,4 @@
- /*
+/*
  * Authors: Castelli Giorgia  873787
  *          Pisanò Lorenzo    900590
  *          
@@ -70,10 +70,10 @@ void setup() {
   frequencyPot = 0;
   level, levelGame = 0;
   tempInitialGameTime, gameTime, microGameTime, initialGameTime = 0;
-
+  
   firstLedOn, checkCorrectClick = false;
   restartSystem, firstStart = true;  
-
+  
   Serial.begin(9600);
   Serial.println("Welcome to the Track to Led Fly Game. Press Key T1 to Start");
 
@@ -115,39 +115,39 @@ void setup() {
 */
 
 void loop() {
-
+  
   if (!(firstStart == false))
     initialGameState();
   else{
-    if (!(restartSystem == true)){
+    if (!(restartSystem == true) && (checkCorrectClick == true)){
       play();
     }else{
       Serial.println("RESTART LEVEL");
       for(int i=0; i<4; i++){
         digitalWrite(greenLEDs[i], LOW);
       }
-
+      
       digitalWrite(redLED, HIGH);
-
+          
       delay(2000);
-
+      
       digitalWrite(redLED, LOW);
-
+      
       frequencyPot = analogRead(potentiometer);
       gameTime = getLevel();
       microGameTime = (gameTime*10000);
       play();
     }
   }
-
+  
 }
 
 void play(){
-
+  
     for(int i=0; i<4; i++){
       digitalWrite(greenLEDs[i], LOW);
     }
-
+    
     static uint8_t InterruptedPin;
     static uint8_t PinState;
 
@@ -156,17 +156,17 @@ void play(){
     microGameTime = (gameTime*10000);
     Timer1.setPeriod(microGameTime);
     Timer1.restart();      
-
+    
     noInterrupts();      
      InterruptedPin = InterruptedPinShared;
      PinState = PinStateShared;
     interrupts();
-
+    
     for (int fadeValue = 0 ; fadeValue <= 255; fadeValue += 15) {
       analogWrite(greenLEDs[nextLedOn], fadeValue);
       delay(gameTime/2);
     }
-
+    
     for (int fadeValue = 255 ; fadeValue > 0; fadeValue -= 15) {
       analogWrite(greenLEDs[nextLedOn], fadeValue);
       delay((gameTime/2));
@@ -186,7 +186,7 @@ void play(){
 */
 
 void initialGameState(){
-
+  
   for (int fadeValue = 0 ; fadeValue <= 255; fadeValue += 15) {
       analogWrite(redLED, fadeValue);
       delay(60);
@@ -207,15 +207,15 @@ void initialGameState(){
 */
 int flashLed() {
 
-
+  
   if(firstLedOn == false){
     nextLedOn=0+rand()%4;
     firstLedOn = true;
   }else{
-
+    
     if (rand () % 2 == 0){
       temp = currentLedOn++;
-
+      
         while(currentLedOn != temp){
             temp++;
         }
@@ -223,11 +223,11 @@ int flashLed() {
           nextLedOn = 0;
         else
           nextLedOn = temp;
-
-
+        
+      
     }else{
       temp = currentLedOn--;
-
+      
         while(currentLedOn != temp){
           if(temp == -1)
             temp = 3; 
@@ -276,11 +276,11 @@ void randomTime(){
  * 
 */
 void incPunteggio(){
-
+  
   InterruptedPinShared=arduinoInterruptedPin;
   PinStateShared=arduinoPinState;
 
-  if(firstStart == true & buttons[0] == InterruptedPinShared){
+  if(firstStart == true && buttons[0] == InterruptedPinShared){
     firstStart = false;
     frequencyPot = analogRead(potentiometer);
     gameTime = getLevel();
@@ -295,16 +295,22 @@ void incPunteggio(){
             score++;
 
             Timer1.stop(); 
-
+  
             Serial.print("Tracking the fly: pos ");
             Serial.println(currentLedOn);
-
-            //checkCorrectClick = true;
-
+            
+            checkCorrectClick = true;
+            
             gameTime = (gameTime/8)*7;            
             randomTime();
+            //break;
             play();
+      }else{
+       checkCorrectClick = false; 
       }
+    }
+    if (checkCorrectClick == false){
+      timesUp();
     }
    interrupts();
   }
@@ -319,23 +325,23 @@ void incPunteggio(){
  * 
 */
 int getLevel(){
-
+  
   switch(frequencyPot){
     case 0 ... 128:
       level = 1;
       initialGameTime = 800;
     break;
-
+    
     case 129 ... 256:
       level = 2;
       initialGameTime = 700;
     break;
-
+    
     case 257 ... 384:
       level = 3;
       gameTime = 600;
     break;
-
+    
     case 385 ... 513:
       level = 4;
       initialGameTime = 500;
@@ -360,7 +366,7 @@ int getLevel(){
       level = 8;
       initialGameTime = 100;
     break;
-
+    
   }
 
   return initialGameTime;
@@ -377,7 +383,8 @@ int getLevel(){
  * 
 */
 void timesUp(){
-  Timer1.detachInterrupt(); 
+  Timer1.detachInterrupt();
+  Timer1.stop();
   Serial.print("Game Over - Score: ");
   Serial.println(score);
   score = 0;
