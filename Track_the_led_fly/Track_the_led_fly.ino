@@ -308,7 +308,7 @@ void incPunteggio(){
             break;
       }else{
         checkCorrectClick = false;
-        Serial.println("bottone sbagliato");
+        Serial.println("bottone sbagliato"); // da togliese
         restartSystem=true;
       }
     }
