@@ -122,21 +122,21 @@ void loop() {
     if (!(restartSystem == true) && (checkCorrectClick == true)){
       play();
     }else{
-      Serial.println("RESTART LEVEL");
-      for(int i=0; i<4; i++){
-        digitalWrite(greenLEDs[i], LOW);
-      }
+      Serial.println("WAIT...");
+      Serial.println("");
       
       digitalWrite(redLED, HIGH);
-          
+      
       delay(2000);
       
       digitalWrite(redLED, LOW);
-      
-      frequencyPot = analogRead(potentiometer);
-      gameTime = getLevel();
-      microGameTime = (gameTime*10000);
-      play();
+
+      firstStart = true;
+      Serial.println("Welcome to the Track to Led Fly Game. Press Key T1 to Start");
+      //frequencyPot = analogRead(potentiometer);
+      //gameTime = getLevel();
+      //microGameTime = (gameTime*10000);
+      //play();
     }
   }
   
@@ -207,7 +207,6 @@ void initialGameState(){
 */
 int flashLed() {
 
-  
   if(firstLedOn == false){
     nextLedOn=0+rand()%4;
     firstLedOn = true;
@@ -281,6 +280,7 @@ void incPunteggio(){
   PinStateShared=arduinoPinState;
 
   if(firstStart == true && buttons[0] == InterruptedPinShared){
+    noInterrupts();
     firstStart = false;
     frequencyPot = analogRead(potentiometer);
     gameTime = getLevel();
@@ -288,6 +288,7 @@ void incPunteggio(){
     Timer1.setPeriod(microGameTime);
     Serial.println("GO!");
     Serial.println(gameTime);
+    interrupts();
   }else{
     noInterrupts();
     for(int i=0; i<4; i++){ 
@@ -310,6 +311,10 @@ void incPunteggio(){
       }
     }
     if (checkCorrectClick == false){
+      
+      for(int i=0; i<4; i++){
+        digitalWrite(greenLEDs[i], LOW);
+      }
       timesUp();
     }
    interrupts();
