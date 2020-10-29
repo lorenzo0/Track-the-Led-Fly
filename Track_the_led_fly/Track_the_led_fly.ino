@@ -71,8 +71,8 @@ void setup() {
   level, levelGame = 0;
   tempInitialGameTime, gameTime, microGameTime, initialGameTime = 0;
   
-  firstLedOn, checkCorrectClick = false;
-  restartSystem, firstStart = true;  
+  firstLedOn = false;
+  restartSystem, firstStart, checkCorrectClick = true;  
   
   Serial.begin(9600);
   Serial.println("Welcome to the Track to Led Fly Game. Press Key T1 to Start");
@@ -119,7 +119,9 @@ void loop() {
   if (!(firstStart == false))
     initialGameState();
   else{
-    if (!(restartSystem == true) && (checkCorrectClick == true)){
+    if (!(restartSystem == true)){
+      /*se non funziona aggiungere condizione 
+      checkCorrectClick == true*/
       play();
     }else{
       Serial.println("WAIT...");
@@ -133,10 +135,7 @@ void loop() {
 
       firstStart = true;
       Serial.println("Welcome to the Track to Led Fly Game. Press Key T1 to Start");
-      //frequencyPot = analogRead(potentiometer);
-      //gameTime = getLevel();
-      //microGameTime = (gameTime*10000);
-      //play();
+      
     }
   }
   
@@ -195,7 +194,7 @@ void initialGameState(){
   for (int fadeValue = 255 ; fadeValue > 0; fadeValue -= 15) {
       analogWrite(redLED, fadeValue);
       delay(60);
-  }  
+  }
 }
 
 /*
@@ -282,6 +281,8 @@ void incPunteggio(){
   if(firstStart == true && buttons[0] == InterruptedPinShared){
     noInterrupts();
     firstStart = false;
+    //se non funziona restartSystem = true (nel secondo if) mettere questa condizione ogni volta che il gioco riparte
+    //checkCorrectClick = true; 
     frequencyPot = analogRead(potentiometer);
     gameTime = getLevel();
     microGameTime = (gameTime*10000);
@@ -301,21 +302,22 @@ void incPunteggio(){
             Serial.println(currentLedOn);
             
             checkCorrectClick = true;
-            
-            gameTime = (gameTime/8)*7;            
-            randomTime();
-            //break;
-            play();
+            break; //guarda se funziona correttamente (esce dal for appena diventa true)
       }else{
        checkCorrectClick = false; 
       }
     }
     if (checkCorrectClick == false){
-      
       for(int i=0; i<4; i++){
         digitalWrite(greenLEDs[i], LOW);
       }
+      restartSystem = true; //facendo così basta solo questa condizione nell'if del loop (da provare)
       timesUp();
+    }else{
+      gameTime = (gameTime/8)*7;            
+      randomTime();
+      //guarda se funziona anche senza, perchè il prof vuole che usiamo il loop per gestire il gioco
+      //play(); 
     }
    interrupts();
   }
