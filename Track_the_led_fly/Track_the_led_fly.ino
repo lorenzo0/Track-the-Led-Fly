@@ -11,8 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define greenLED1 13
-#define greenLED2 11
+#define greenLED1 11
+#define greenLED2 13
 #define greenLED3 6
 #define greenLED4 5
 
@@ -27,7 +27,7 @@
 #define redLED 3
 
 /* Costante da definire per la definizione del tempo */
-const long k=0.8;
+const long k=1.2;
 
 volatile uint8_t InterruptedPinShared;
 volatile uint8_t PinStateShared;
@@ -35,7 +35,7 @@ volatile uint8_t PinStateShared;
 unsigned char greenLEDs[4];
 unsigned char buttons[4];
 
-int currentLedOn, nextLedOn, temp, score, frequencyPot, level, levelGame;
+int currentLedOn, nextLedOn, temp, score, frequencyPot, level, levelGame, i, fadeValue;
 boolean firstLedOn, checkCorrectClick, restartSystem, firstStart;
 long gameTime, randomGameTime, tempInitialGameTime, microGameTime, initialGameTime;
 
@@ -69,7 +69,7 @@ void setup() {
   temp, score = 0;
   frequencyPot = 0;
   level, levelGame = 0;
-  tempInitialGameTime, gameTime, microGameTime, initialGameTime = 0;
+  tempInitialGameTime, gameTime, microGameTime, initialGameTime, i, fadeValue = 0;
   
   firstLedOn, checkCorrectClick = false;
   restartSystem, firstStart = true;  
@@ -117,16 +117,20 @@ void setup() {
 void loop() {
   
   if (!(firstStart == false)){
-    checkCorrectClick = true;
     initialGameState();
   }else{
-    if (!(restartSystem == true) && (checkCorrectClick == true)){
+    if (!(restartSystem == true)){
       play();
+      
     }else{
 
       for(int i=0; i<4; i++){
         digitalWrite(greenLEDs[i], LOW);
       }
+      
+      Serial.print("Game Over - Score: ");
+      Serial.println(score);
+      score = 0;
       
       Serial.println("WAIT...");
       Serial.println("");
@@ -139,17 +143,12 @@ void loop() {
 
       firstStart = true;
       Serial.println("Welcome to the Track to Led Fly Game. Press Key T1 to Start");
-      //frequencyPot = analogRead(potentiometer);
-      //gameTime = getLevel();
-      //microGameTime = (gameTime*10000);
-      //play();
     }
-  }
-  
+  } 
 }
 
 void play(){
-  
+    Serial.println("ciso");
     for(int i=0; i<4; i++){
       digitalWrite(greenLEDs[i], LOW);
     }
@@ -158,8 +157,13 @@ void play(){
     static uint8_t PinState;
 
     currentLedOn = flashLed();
-
+    Serial.println(currentLedOn);
+    gameTime = (gameTime/8)*7;            
+    randomTime();
+    
     microGameTime = (gameTime*10000);
+    
+    Timer1.stop();
     Timer1.setPeriod(microGameTime);
     Timer1.restart();      
     
@@ -168,16 +172,26 @@ void play(){
      PinState = PinStateShared;
     interrupts();
     
-    for (int fadeValue = 0 ; fadeValue <= 255; fadeValue += 15) {
-      analogWrite(greenLEDs[nextLedOn], fadeValue);
-      delay(gameTime/2);
+    while(i <= 255*2){
+      
+      if (i<255){
+        fadeValue+=15;
+        analogWrite(greenLEDs[nextLedOn], fadeValue);
+        delay(gameTime/2);
+      }else{
+        fadeValue-=15;
+        analogWrite(greenLEDs[nextLedOn], fadeValue);
+        delay(gameTime/2);
+      }
+      
+      i+=15;  
+      
+      if(checkCorrectClick==true || restartSystem==true)
+        break;
     }
-    
-    for (int fadeValue = 255 ; fadeValue > 0; fadeValue -= 15) {
-      analogWrite(greenLEDs[nextLedOn], fadeValue);
-      delay((gameTime/2));
-    }
-    Timer1.attachInterrupt(timesUp);
+
+    if(checkCorrectClick != true || restartSystem == true)
+      Timer1.attachInterrupt(timesUp);
 }
 
 /*
@@ -195,15 +209,15 @@ void initialGameState(){
         digitalWrite(greenLEDs[i], LOW);
       }
   
-  for (int fadeValue = 0 ; fadeValue <= 255; fadeValue += 15) {
-      analogWrite(redLED, fadeValue);
-      delay(60);
-  }
-
-  for (int fadeValue = 255 ; fadeValue > 0; fadeValue -= 15) {
-      analogWrite(redLED, fadeValue);
-      delay(60);
-  }  
+  if (i<255){
+        fadeValue+=15;
+        analogWrite(redLED, fadeValue);
+        delay(60);
+      }else{
+        fadeValue-=15;
+        analogWrite(redLED, fadeValue);
+        delay(60);
+      } 
 }
 
 /*
@@ -214,13 +228,14 @@ void initialGameState(){
  * 
 */
 int flashLed() {
-
+  checkCorrectClick = false;
+  
   if(firstLedOn == false){
     nextLedOn=0+rand()%4;
+    Serial.println("led"+nextLedOn);
     firstLedOn = true;
   }else{
-    
-    if (rand () % 2 == 0){
+    if (rand() % 2 == 0){
       temp = currentLedOn++;
       
         while(currentLedOn != temp){
@@ -259,7 +274,7 @@ int flashLed() {
  * 
 */
 void randomTime(){
-  gameTime = (gameTime)+rand()%((gameTime*k)- gameTime);
+  gameTime = (gameTime)+rand()%(((gameTime*k)+1) - gameTime);
 }
 
 /*
@@ -282,7 +297,7 @@ void randomTime(){
  * 
  * 
 */
-boolean incPunteggio(){
+void incPunteggio(){
   
   InterruptedPinShared=arduinoInterruptedPin;
   PinStateShared=arduinoPinState;
@@ -290,15 +305,17 @@ boolean incPunteggio(){
   if(firstStart == true && buttons[0] == InterruptedPinShared){
     noInterrupts();
     firstStart = false;
+    restartSystem=false;
     frequencyPot = analogRead(potentiometer);
     gameTime = getLevel();
-    microGameTime = (gameTime*10000);
-    Timer1.setPeriod(microGameTime);
+    //microGameTime = (gameTime*10000);
+    //Timer1.setPeriod(microGameTime);
     Serial.println("GO!");
-    Serial.println(gameTime);
+    //Serial.println(gameTime);
     interrupts();
   }else{
     noInterrupts();
+    
     for(int i=0; i<4; i++){ 
       if(buttons[i] == InterruptedPinShared && currentLedOn==i && restartSystem == false ){
             score++; 
@@ -308,18 +325,14 @@ boolean incPunteggio(){
             
             checkCorrectClick = true;
             
-            gameTime = (gameTime/8)*7;            
-            randomTime();
-            //return true;
-      }else{
-       checkCorrectClick = false; 
       }
     }
-    
+    Serial.println(checkCorrectClick);
+
     if (checkCorrectClick == false){
       timesUp();
     }
-    interrupts();
+    interrupts();    
    
   }
 }
@@ -393,8 +406,5 @@ int getLevel(){
 void timesUp(){
   Timer1.detachInterrupt();
   //Timer1.stop();
-  Serial.print("Game Over - Score: ");
-  Serial.println(score);
-  score = 0;
   restartSystem = true;
 }
