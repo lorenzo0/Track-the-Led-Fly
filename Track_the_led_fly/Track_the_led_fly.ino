@@ -71,8 +71,8 @@ void setup() {
   level, levelGame = 0;
   tempInitialGameTime, gameTime, microGameTime, initialGameTime = 0;
   
-  firstLedOn = false;
-  restartSystem, firstStart, checkCorrectClick = true;  
+  firstLedOn, checkCorrectClick = false;
+  restartSystem, firstStart = true;  
   
   Serial.begin(9600);
   Serial.println("Welcome to the Track to Led Fly Game. Press Key T1 to Start");
@@ -116,14 +116,18 @@ void setup() {
 
 void loop() {
   
-  if (!(firstStart == false))
+  if (!(firstStart == false)){
+    checkCorrectClick = true;
     initialGameState();
-  else{
-    if (!(restartSystem == true)){
-      /*se non funziona aggiungere condizione 
-      checkCorrectClick == true*/
+  }else{
+    if (!(restartSystem == true) && (checkCorrectClick == true)){
       play();
     }else{
+
+      for(int i=0; i<4; i++){
+        digitalWrite(greenLEDs[i], LOW);
+      }
+      
       Serial.println("WAIT...");
       Serial.println("");
       
@@ -135,7 +139,10 @@ void loop() {
 
       firstStart = true;
       Serial.println("Welcome to the Track to Led Fly Game. Press Key T1 to Start");
-      
+      //frequencyPot = analogRead(potentiometer);
+      //gameTime = getLevel();
+      //microGameTime = (gameTime*10000);
+      //play();
     }
   }
   
@@ -169,8 +176,7 @@ void play(){
     for (int fadeValue = 255 ; fadeValue > 0; fadeValue -= 15) {
       analogWrite(greenLEDs[nextLedOn], fadeValue);
       delay((gameTime/2));
-    }  
-
+    }
     Timer1.attachInterrupt(timesUp);
 }
 
@@ -185,6 +191,9 @@ void play(){
 */
 
 void initialGameState(){
+  for(int i=0; i<4; i++){
+        digitalWrite(greenLEDs[i], LOW);
+      }
   
   for (int fadeValue = 0 ; fadeValue <= 255; fadeValue += 15) {
       analogWrite(redLED, fadeValue);
@@ -194,7 +203,7 @@ void initialGameState(){
   for (int fadeValue = 255 ; fadeValue > 0; fadeValue -= 15) {
       analogWrite(redLED, fadeValue);
       delay(60);
-  }
+  }  
 }
 
 /*
@@ -273,7 +282,7 @@ void randomTime(){
  * 
  * 
 */
-void incPunteggio(){
+boolean incPunteggio(){
   
   InterruptedPinShared=arduinoInterruptedPin;
   PinStateShared=arduinoPinState;
@@ -281,8 +290,6 @@ void incPunteggio(){
   if(firstStart == true && buttons[0] == InterruptedPinShared){
     noInterrupts();
     firstStart = false;
-    //se non funziona restartSystem = true (nel secondo if) mettere questa condizione ogni volta che il gioco riparte
-    //checkCorrectClick = true; 
     frequencyPot = analogRead(potentiometer);
     gameTime = getLevel();
     microGameTime = (gameTime*10000);
@@ -293,33 +300,27 @@ void incPunteggio(){
   }else{
     noInterrupts();
     for(int i=0; i<4; i++){ 
-      if(buttons[i] == InterruptedPinShared && currentLedOn==i){ //&& restartSystem == false ){
-            score++;
-
-            Timer1.stop(); 
+      if(buttons[i] == InterruptedPinShared && currentLedOn==i && restartSystem == false ){
+            score++; 
   
             Serial.print("Tracking the fly: pos ");
             Serial.println(currentLedOn);
             
             checkCorrectClick = true;
-            break; //guarda se funziona correttamente (esce dal for appena diventa true)
+            
+            gameTime = (gameTime/8)*7;            
+            randomTime();
+            //return true;
       }else{
        checkCorrectClick = false; 
       }
     }
+    
     if (checkCorrectClick == false){
-      for(int i=0; i<4; i++){
-        digitalWrite(greenLEDs[i], LOW);
-      }
-      restartSystem = true; //facendo così basta solo questa condizione nell'if del loop (da provare)
       timesUp();
-    }else{
-      gameTime = (gameTime/8)*7;            
-      randomTime();
-      //guarda se funziona anche senza, perchè il prof vuole che usiamo il loop per gestire il gioco
-      //play(); 
     }
-   interrupts();
+    interrupts();
+   
   }
 }
 
@@ -391,7 +392,7 @@ int getLevel(){
 */
 void timesUp(){
   Timer1.detachInterrupt();
-  Timer1.stop();
+  //Timer1.stop();
   Serial.print("Game Over - Score: ");
   Serial.println(score);
   score = 0;
