@@ -121,7 +121,6 @@ void loop() {
   }else{
     if (!(restartSystem == true)){
       play();
-      
     }else{
 
       for(int i=0; i<4; i++){
@@ -131,9 +130,6 @@ void loop() {
       Serial.print("Game Over - Score: ");
       Serial.println(score);
       score = 0;
-      
-      Serial.println("WAIT...");
-      Serial.println("");
       
       digitalWrite(redLED, HIGH);
       
@@ -148,7 +144,6 @@ void loop() {
 }
 
 void play(){
-    Serial.println("ciso");
     for(int i=0; i<4; i++){
       digitalWrite(greenLEDs[i], LOW);
     }
@@ -157,7 +152,7 @@ void play(){
     static uint8_t PinState;
 
     currentLedOn = flashLed();
-    Serial.println(currentLedOn);
+    
     gameTime = (gameTime/8)*7;            
     randomTime();
     
@@ -165,12 +160,15 @@ void play(){
     
     Timer1.stop();
     Timer1.setPeriod(microGameTime);
-    Timer1.restart();      
+    Timer1.start();      
     
     noInterrupts();      
      InterruptedPin = InterruptedPinShared;
      PinState = PinStateShared;
     interrupts();
+
+    checkCorrectClick = false;
+    restartSystem = false;
     
     while(i <= 255*2){
       
@@ -190,8 +188,19 @@ void play(){
         break;
     }
 
-    if(checkCorrectClick != true || restartSystem == true)
+    Serial.print("Game time: ");
+    Serial.println(gameTime);
+
+    Serial.print("Check Correct Click: ");
+    Serial.println(checkCorrectClick);
+
+    Serial.print("Restart System: ");
+    Serial.println(restartSystem);
+
+    if(checkCorrectClick != true || restartSystem != true){
+      Serial.println("!ALARM!");
       Timer1.attachInterrupt(timesUp);
+    }
 }
 
 /*
@@ -232,7 +241,6 @@ int flashLed() {
   
   if(firstLedOn == false){
     nextLedOn=0+rand()%4;
-    Serial.println("led"+nextLedOn);
     firstLedOn = true;
   }else{
     if (rand() % 2 == 0){
@@ -327,11 +335,10 @@ void incPunteggio(){
             
       }
     }
-    Serial.println(checkCorrectClick);
-
-    if (checkCorrectClick == false){
+    
+    if (checkCorrectClick == false)
       timesUp();
-    }
+    
     interrupts();    
    
   }
@@ -404,7 +411,5 @@ int getLevel(){
  * 
 */
 void timesUp(){
-  Timer1.detachInterrupt();
-  //Timer1.stop();
   restartSystem = true;
 }
