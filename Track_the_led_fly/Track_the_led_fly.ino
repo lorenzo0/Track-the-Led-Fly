@@ -174,6 +174,9 @@ void loop() {
 
       Serial.print("Restart: ");
       Serial.println(restartSystem);
+
+      if(checkCorrectClick == false)
+        timesUp();
       
     }else{
   
