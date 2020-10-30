@@ -25,7 +25,7 @@
 #define redLED 3
 
 /* Costante da definire per la definizione del tempo */
-const long k=0.8;
+const long k=1.2;
 
 volatile uint8_t InterruptedPinShared;
 volatile uint8_t PinStateShared;
@@ -70,8 +70,6 @@ void setup() {
   tempInitialGameTime, gameTime, microGameTime = 0;
   firstLedOn, checkCorrectClick = false;
   restartSystem, firstStart = true;  
-
-  MiniTimer1.init();
   
   Serial.begin(9600);
   Serial.println("Welcome to the Track to Led Fly Game. Press Key T1 to Start");
@@ -132,48 +130,26 @@ void loop() {
        PinState = PinStateShared;
       interrupts();
 
-      Serial.println(gameTime);
-        
-      for (int fadeValue = 0 ; fadeValue <= 255; fadeValue += 15) {
-        analogWrite(greenLEDs[currentLedOn], fadeValue);
-        delay(gameTime/2);
-
-        if(checkCorrectClick==true || restartSystem==true)
-          break;
-      }
+      i = 0;
+      fadeValue = 0;
       
-      for (int fadeValue = 255 ; fadeValue > 0; fadeValue -= 15) {
-        analogWrite(greenLEDs[currentLedOn], fadeValue);
-        delay((gameTime/2));
-
-        if(checkCorrectClick==true || restartSystem==true)
-          break;
-      }  
-
-      /*i, fadeValue = 0;
       while(i <= 255*2){
       
-      if (i<255){
-        fadeValue+=15;
-        analogWrite(greenLEDs[nextLedOn], fadeValue);
-        delay(gameTime/2);
-      }else{
-        fadeValue-=15;
-        analogWrite(greenLEDs[nextLedOn], fadeValue);
-        delay(gameTime/2);
+        if (i<255){
+          fadeValue+=15;
+          analogWrite(greenLEDs[nextLedOn], fadeValue);
+          delay(gameTime/2);
+        }else if(i>255 && fadeValue>0){
+          fadeValue-=15;
+          analogWrite(greenLEDs[nextLedOn], fadeValue);
+          delay(gameTime/2);
+        }
+        
+        i+=15;  
+        
+        if(checkCorrectClick==true || restartSystem==true)
+          break;
       }
-      
-      i+=15;  
-      
-      if(checkCorrectClick==true || restartSystem==true)
-        break;
-    }*/
-
-      Serial.print("checkCorrectClick: ");
-      Serial.println(checkCorrectClick);
-
-      Serial.print("Restart: ");
-      Serial.println(restartSystem);
 
       if(checkCorrectClick == false)
         timesUp();
@@ -213,21 +189,25 @@ void loop() {
 
 void initialGameState(){
   
-  for (int fadeValue = 0 ; fadeValue <= 255; fadeValue += 15) {
-      analogWrite(redLED, fadeValue);
-      delay(60);
-
-      if(firstStart==false)
+  i = 0;
+  fadeValue = 0;
+    while(i <= 255*2){
+      
+        if (i<255){
+          fadeValue+=15;
+          analogWrite(redLED, fadeValue);
+          delay(60);
+        }else if(i>255 && fadeValue>0){
+          fadeValue-=15;
+          analogWrite(redLED, fadeValue);
+          delay(60);
+        }
+        
+        i+=15; 
+        
+        if(firstStart==false)
           break;
-  }
-
-  for (int fadeValue = 255 ; fadeValue > 0; fadeValue -= 15) {
-      analogWrite(redLED, fadeValue);
-      delay(60);
-
-      if(firstStart==false)
-          break;
-  }  
+    }
 }
 
 /*
@@ -243,7 +223,6 @@ int flashLed() {
 
   if(firstLedOn == false){
     nextLedOn=0+rand()%4;
-    Serial.println("led"+nextLedOn);
     firstLedOn = true;
   }else{
     
@@ -286,7 +265,9 @@ int flashLed() {
  * 
 */
 void randomTime(){
-  gameTime = (gameTime)+rand()%((gameTime*k)- gameTime);
+  long minGameTime = gameTime;
+  long maxGameTime = (long)((gameTime*k)+1);
+  gameTime = (minGameTime)+rand()%( maxGameTime - minGameTime);
 }
 
 /*
@@ -321,7 +302,8 @@ void incPunteggio(){
   }else{
     noInterrupts();
     for(int i=0; i<4; i++){ 
-      if(buttons[i] == InterruptedPinShared && currentLedOn==i && restartSystem == false ){
+      if(buttons[i] == InterruptedPinShared && currentLedOn==i 
+          && restartSystem == false && checkCorrectClick == false ){
             score++;
             Serial.print("Tracking the fly: pos ");
             Serial.println(currentLedOn);
@@ -335,9 +317,6 @@ void incPunteggio(){
     if (checkCorrectClick == false){
       timesUp();
     }
-
-    Serial.print("checkCorrentClick: ");
-    Serial.println(checkCorrectClick);
     
     interrupts();
   }
