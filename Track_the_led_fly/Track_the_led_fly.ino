@@ -7,7 +7,7 @@
 
 #define EI_ARDUINO_INTERRUPTED_PIN
 #include <EnableInterrupt.h>
-#include "TimerOne.h"
+#include "MiniTimerOne.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -35,8 +35,8 @@ volatile uint8_t PinStateShared;
 unsigned char greenLEDs[4];
 unsigned char buttons[4];
 
-int currentLedOn, nextLedOn, temp, score, frequencyPot, level, levelGame, i, fadeValue;
-boolean firstLedOn, checkCorrectClick, restartSystem, firstStart;
+int currentLedOn, nextLedOn, temp, score, frequencyPot, level, levelGame, iLED,i, fadeValue;
+boolean firstLedOn, checkCorrectClick, restartSystem, firstStart, firstTimeTimer;
 long gameTime, randomGameTime, tempInitialGameTime, microGameTime, initialGameTime;
 
 /* 
@@ -70,14 +70,15 @@ void setup() {
   frequencyPot = 0;
   level, levelGame = 0;
   tempInitialGameTime, gameTime, microGameTime, initialGameTime, i, fadeValue = 0;
-  
+  iLED=15;
   firstLedOn, checkCorrectClick = false;
-  restartSystem, firstStart = true;  
+  restartSystem, firstStart, firstTimeTimer = true;  
+
+  MiniTimer1.init();
   
   Serial.begin(9600);
   Serial.println("Welcome to the Track to Led Fly Game. Press Key T1 to Start");
 
-  Timer1.initialize();
 }
 
 /*
@@ -121,6 +122,7 @@ void loop() {
   }else{
     if (!(restartSystem == true)){
       play();
+      
     }else{
 
       for(int i=0; i<4; i++){
@@ -130,6 +132,9 @@ void loop() {
       Serial.print("Game Over - Score: ");
       Serial.println(score);
       score = 0;
+      
+      Serial.println("WAIT...");
+      Serial.println("");
       
       digitalWrite(redLED, HIGH);
       
@@ -144,6 +149,17 @@ void loop() {
 }
 
 void play(){
+    Serial.println("ciao");
+    
+    gameTime = (gameTime/8)*7;            
+    randomTime();
+    microGameTime=gameTime*10000;
+
+    
+    MiniTimer1.setPeriod(microGameTime);
+    MiniTimer1.start();
+    MiniTimer1.attachInterrupt(timesUp);
+    
     for(int i=0; i<4; i++){
       digitalWrite(greenLEDs[i], LOW);
     }
@@ -152,23 +168,12 @@ void play(){
     static uint8_t PinState;
 
     currentLedOn = flashLed();
-    
-    gameTime = (gameTime/8)*7;            
-    randomTime();
-    
-    microGameTime = (gameTime*10000);
-    
-    Timer1.stop();
-    Timer1.setPeriod(microGameTime);
-    Timer1.start();      
-    
+    Serial.println(currentLedOn);         
+
     noInterrupts();      
      InterruptedPin = InterruptedPinShared;
      PinState = PinStateShared;
     interrupts();
-
-    checkCorrectClick = false;
-    restartSystem = false;
     
     while(i <= 255*2){
       
@@ -188,19 +193,8 @@ void play(){
         break;
     }
 
-    Serial.print("Game time: ");
-    Serial.println(gameTime);
 
-    Serial.print("Check Correct Click: ");
-    Serial.println(checkCorrectClick);
-
-    Serial.print("Restart System: ");
-    Serial.println(restartSystem);
-
-    if(checkCorrectClick != true || restartSystem != true){
-      Serial.println("!ALARM!");
-      Timer1.attachInterrupt(timesUp);
-    }
+    
 }
 
 /*
@@ -217,16 +211,12 @@ void initialGameState(){
   for(int i=0; i<4; i++){
         digitalWrite(greenLEDs[i], LOW);
       }
-  
-  if (i<255){
-        fadeValue+=15;
-        analogWrite(redLED, fadeValue);
-        delay(60);
-      }else{
-        fadeValue-=15;
-        analogWrite(redLED, fadeValue);
-        delay(60);
-      } 
+  analogWrite(redLED, fadeValue);
+  delay(60);
+  fadeValue = fadeValue + iLED; 
+  if (fadeValue == 0 || fadeValue == 255){
+      iLED = iLED *-1;
+  }
 }
 
 /*
@@ -241,6 +231,7 @@ int flashLed() {
   
   if(firstLedOn == false){
     nextLedOn=0+rand()%4;
+    Serial.println("led"+nextLedOn);
     firstLedOn = true;
   }else{
     if (rand() % 2 == 0){
@@ -316,10 +307,7 @@ void incPunteggio(){
     restartSystem=false;
     frequencyPot = analogRead(potentiometer);
     gameTime = getLevel();
-    //microGameTime = (gameTime*10000);
-    //Timer1.setPeriod(microGameTime);
     Serial.println("GO!");
-    //Serial.println(gameTime);
     interrupts();
   }else{
     noInterrupts();
@@ -329,16 +317,16 @@ void incPunteggio(){
             score++; 
   
             Serial.print("Tracking the fly: pos ");
-            Serial.println(currentLedOn);
+            //Serial.println(currentLedOn);
             
             checkCorrectClick = true;
             
       }
     }
-    
-    if (checkCorrectClick == false)
+
+    if (checkCorrectClick == false){
       timesUp();
-    
+    }
     interrupts();    
    
   }
@@ -411,5 +399,6 @@ int getLevel(){
  * 
 */
 void timesUp(){
+  MiniTimer1.stop();
   restartSystem = true;
 }
