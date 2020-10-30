@@ -7,7 +7,7 @@
 
 #define EI_ARDUINO_INTERRUPTED_PIN
 #include <EnableInterrupt.h>
-#include "TimerOne.h"
+#include "MiniTimerOne.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -68,14 +68,14 @@ void setup() {
   frequencyPot = 0;
   level, levelGame = 0;
   tempInitialGameTime, gameTime, microGameTime = 0;
-  
   firstLedOn, checkCorrectClick = false;
   restartSystem, firstStart = true;  
+
+  MiniTimer1.init();
   
   Serial.begin(9600);
   Serial.println("Welcome to the Track to Led Fly Game. Press Key T1 to Start");
 
-  Timer1.initialize();
 }
 
 /*
@@ -118,7 +118,6 @@ void loop() {
     initialGameState();
   else{
     if (!(restartSystem == true)){
-    
       for(int i=0; i<4; i++){
         digitalWrite(greenLEDs[i], LOW);
       }
@@ -127,7 +126,7 @@ void loop() {
       static uint8_t PinState;
   
       currentLedOn = flashLed();
-      
+
       noInterrupts();      
        InterruptedPin = InterruptedPinShared;
        PinState = PinStateShared;
@@ -151,7 +150,7 @@ void loop() {
           break;
       }  
 
-      i, fadeValue = 0;
+      /*i, fadeValue = 0;
       while(i <= 255*2){
       
       if (i<255){
@@ -168,7 +167,7 @@ void loop() {
       
       if(checkCorrectClick==true || restartSystem==true)
         break;
-    }
+    }*/
 
       Serial.print("checkCorrectClick: ");
       Serial.println(checkCorrectClick);
@@ -210,7 +209,7 @@ void loop() {
 */
 
 void initialGameState(){
-
+  
   for (int fadeValue = 0 ; fadeValue <= 255; fadeValue += 15) {
       analogWrite(redLED, fadeValue);
       delay(60);
@@ -241,6 +240,7 @@ int flashLed() {
 
   if(firstLedOn == false){
     nextLedOn=0+rand()%4;
+    Serial.println("led"+nextLedOn);
     firstLedOn = true;
   }else{
     
