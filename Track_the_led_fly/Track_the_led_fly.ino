@@ -1,8 +1,14 @@
 /*
+ * 
  * Authors: Castelli Giorgia  873787
  *          Pisanò Lorenzo    900590
  *          
-   * Subject: Track the led fly
+ * Subject: Track the led fly
+ * 
+ * Link al video - presente anche nel file txt visibile all'interno dello zip:
+ * https://liveunibo-my.sharepoint.com/:v:/g/personal/lorenzo_pisano_studio_unibo_it/EbdGGxWgiJBNltQspmakqUUB-7LQsHrXbJ_5I_59VYZ2cQ?e=qASkHn
+ * - visibile solo da account accademici con dominio @unibo -
+ * 
 */
 
 #define EI_ARDUINO_INTERRUPTED_PIN
@@ -40,10 +46,12 @@ long time = 0;
 boolean endTimer=false;
 
 /* 
+ *  
  *  La procedura setup serve ad inizializzare tutti i componenti e variabili
  *  necessarie per il corretto funzionamento del gioco. Vengono creati degli 
  *  array per memorizzare i quattro bottoni ed i quattro led verdi. Aumentiamo così
  *  la compattezza del programma.
+ *  
 */
 
 void setup() {
@@ -275,8 +283,8 @@ void randomTime(){
  * per evitare di avere problemi di concorrenza durante la gestione del punteggio
  * e l'assegnazione del nuovo tempo di gioco.
  * 
- * Inoltre viene fermato Timer1 nel caso in cui il bottone cliccato sia quello
- * giusto, riparte poi nel loop con Time1.setPeriod().
+ * Start al timer dal momento in cui premiamo - come codificato -
+ * il primo pulsante tattile
  * 
  * 
 */
@@ -290,17 +298,13 @@ void incPunteggio(){
     firstStart = false;
     Serial.println("GO!");
     getLevel();
-
-    /*
-     * Start al timer dal momento in cui premiamo - come codificato -
-     * il primo pulsante tattile
-    */
     
     endTimer=false;
     MiniTimer1.stop();
     MiniTimer1.reset();
     MiniTimer1.setPeriod(gameTime*10000);
     MiniTimer1.start();
+    
   }else{
     noInterrupts();
     for(int i=0; i<4; i++){ 
@@ -338,6 +342,7 @@ void incPunteggio(){
  * partita ed il tempo iniziale di gioco.
  * 
 */
+
 int getLevel(){
   
   switch(frequencyPot){
@@ -397,6 +402,7 @@ int getLevel(){
  * per gestire la nuova partita che - a breve - verrà riavviata.
  * 
 */
+
 void timesUp(){
   restartSystem = true;
   MiniTimer1.stop();
@@ -404,6 +410,17 @@ void timesUp(){
   MiniTimer1.setPeriod(gameTime*10000);
   MiniTimer1.start();
 }
+
+/*
+ * 
+ * Questa procedura, viene richiamata dall'interrupt handler del minitimer1.
+ * Quando il tempo impostato da setPeriod() è passato, viene invocato questo metodo.
+ * 
+ * ----
+ * 
+ * Se endTimer è true nel loop non sarà permesso all'utente di giocare.
+ * 
+*/
 
 void interruptTimer(void){
   endTimer = true;  
