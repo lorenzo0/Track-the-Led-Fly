@@ -36,6 +36,8 @@ unsigned char buttons[4];
 int currentLedOn, nextLedOn, temp, score, frequencyPot, level, levelGame, i, fadeValue;
 boolean firstLedOn, checkCorrectClick, restartSystem, firstStart;
 long gameTime, randomGameTime, tempInitialGameTime, microGameTime;
+long time = 0;
+boolean endTimer=false;
 
 /* 
  *  La procedura setup serve ad inizializzare tutti i componenti e variabili
@@ -43,6 +45,7 @@ long gameTime, randomGameTime, tempInitialGameTime, microGameTime;
  *  array per memorizzare i quattro bottoni ed i quattro led verdi. Aumentiamo così
  *  la compattezza del programma.
 */
+
 void setup() {
   greenLEDs[0] = greenLED1;
   greenLEDs[1] = greenLED2;
@@ -71,12 +74,21 @@ void setup() {
   firstLedOn, checkCorrectClick = false;
   restartSystem, firstStart = true;  
   
+  MiniTimer1.init();
+  MiniTimer1.attachInterrupt(interruptTimer);
+  
   Serial.begin(9600);
   Serial.println("Welcome to the Track to Led Fly Game. Press Key T1 to Start");
 
 }
 
 /*
+ *  NB. Viene utilizzato nell'implementazione MiniTimer1. Questo ci permette di gestire
+ *  il gameTime - tempo di gioco - in ogni fase dell'esercizio. 
+ *  Questo non permette un tempo di attesa maggiore di 4 secondi. Per questo motivo,
+ *  nel metodo getLevel() gli 8 livelli vengono suddivisi nei 4 secondi a disposizione.
+ *  
+ *  -------
  * 
  *  Nel superloop di arduino andiamo a sviluppare i comportamenti principali che
  *  quest'ultimo deve avere durante la sua esecuzione.
@@ -86,7 +98,7 @@ void setup() {
  *  Se il risultato è positivo, quindi è la prima volta che avviamo il programma, allora vengono
  *  rispettate le richieste della consegna, altrimenti procediamo con la normale esecuzione del gioco.
  *  
- *  RestartBoolean anche è una variabile booleana che ha l'onere di controllare se il bottone
+ *  restartSystem anche è una variabile booleana che ha l'onere di controllare se il bottone
  *  non è stato cliccato entro il range [di tempo tMin - (tMin*k)] oppure se è stato premuto il pulsante
  *  tattile errato. In questi due casi, il gioco va in stato -Game over- e ricomincia.
  *  
@@ -110,16 +122,19 @@ void setup() {
  *  
 */
 
+
 void loop() {
   
   if (!(firstStart == false))
     initialGameState();
   else{
-    if (!(restartSystem == true)){
+    if (!(restartSystem == true)&&(endTimer==false)){
+      digitalWrite(redLED, LOW);
+      delay(10);
       for(int i=0; i<4; i++){
         digitalWrite(greenLEDs[i], LOW);
       }
-      
+      delay(10);
       static uint8_t InterruptedPin;
       static uint8_t PinState;
   
@@ -130,29 +145,13 @@ void loop() {
        PinState = PinStateShared;
       interrupts();
 
-      i = 0;
-      fadeValue = 0;
-      
-      while(i <= 255*2){
-      
-        if (i<255){
-          fadeValue+=15;
-          analogWrite(greenLEDs[nextLedOn], fadeValue);
-          delay(gameTime/2);
-        }else if(i>255 && fadeValue>0){
-          fadeValue-=15;
-          analogWrite(greenLEDs[nextLedOn], fadeValue);
-          delay(gameTime/2);
-        }
-        
-        i+=15;  
-        
+      while(endTimer == false){
+        time = millis();
+        fadeValue = 128+127*cos(2*PI/(gameTime*10)*(time));
+        analogWrite(greenLEDs[currentLedOn], fadeValue);
         if(checkCorrectClick==true || restartSystem==true)
           break;
-      }
-
-      if(checkCorrectClick == false)
-        timesUp();
+      } 
       
     }else{
   
@@ -171,7 +170,14 @@ void loop() {
       digitalWrite(redLED, LOW);
       restartSystem = false;
 
+      MiniTimer1.stop();
+      MiniTimer1.reset();
+      MiniTimer1.setPeriod(gameTime*10000);
+      MiniTimer1.start();
+
+      
       firstStart = true;
+      Serial.println("Welcome to the Track to Led Fly Game. Press Key T1 to Start");
     }
   }
   
@@ -188,26 +194,9 @@ void loop() {
 */
 
 void initialGameState(){
-  
-  i = 0;
-  fadeValue = 0;
-    while(i <= 255*2){
-      
-        if (i<255){
-          fadeValue+=15;
-          analogWrite(redLED, fadeValue);
-          delay(60);
-        }else if(i>255 && fadeValue>0){
-          fadeValue-=15;
-          analogWrite(redLED, fadeValue);
-          delay(60);
-        }
-        
-        i+=15; 
-        
-        if(firstStart==false)
-          break;
-    }
+    time = millis();
+    fadeValue = 128+127*cos(2*PI/2000*time);
+    analogWrite(redLED, fadeValue);
 }
 
 /*
@@ -217,6 +206,7 @@ void initialGameState(){
  * posti dalla consegna (Es. Adiacenza tra corrente - prossimo)
  * 
 */
+
 int flashLed() {
 
   checkCorrectClick = false;
@@ -290,6 +280,7 @@ void randomTime(){
  * 
  * 
 */
+
 void incPunteggio(){
   
   InterruptedPinShared=arduinoInterruptedPin;
@@ -298,7 +289,18 @@ void incPunteggio(){
   if(firstStart == true & buttons[0] == InterruptedPinShared){
     firstStart = false;
     Serial.println("GO!");
-    getLevel(); 
+    getLevel();
+
+    /*
+     * Start al timer dal momento in cui premiamo - come codificato -
+     * il primo pulsante tattile
+    */
+    
+    endTimer=false;
+    MiniTimer1.stop();
+    MiniTimer1.reset();
+    MiniTimer1.setPeriod(gameTime*10000);
+    MiniTimer1.start();
   }else{
     noInterrupts();
     for(int i=0; i<4; i++){ 
@@ -307,10 +309,16 @@ void incPunteggio(){
             score++;
             Serial.print("Tracking the fly: pos ");
             Serial.println(currentLedOn);
+            
             checkCorrectClick = true;
             
             gameTime = (gameTime/8)*7;            
             randomTime();
+
+            MiniTimer1.stop();
+            MiniTimer1.reset();
+            MiniTimer1.setPeriod(gameTime*10000);
+            MiniTimer1.start();
       }
     }
 
@@ -335,37 +343,37 @@ int getLevel(){
   switch(frequencyPot){
     case 0 ... 128:
       level = 1;
-      gameTime = 800;
+      gameTime = 400;
     break;
     
     case 129 ... 256:
       level = 2;
-      gameTime = 700;
+      gameTime = 350;
     break;
     
     case 257 ... 384:
       level = 3;
-      gameTime = 600;
+      gameTime = 300;
     break;
     
     case 385 ... 513:
       level = 4;
-      gameTime = 500;
+      gameTime = 250;
     break;
 
     case 514 ... 641:
       level = 5;
-      gameTime = 400;
+      gameTime = 200;
     break;
 
     case 642 ... 769:
       level = 6;
-      gameTime = 300;
+      gameTime = 150;
     break;
 
     case 770 ... 897:
       level = 7;
-      gameTime = 200;
+      gameTime = 125;
     break;
 
     case 898 ... 1023:
@@ -385,9 +393,18 @@ int getLevel(){
  * evento (il bottone non è stato cliccato entro il range [di tempo tMin - (tMin*k)] 
  * oppure se è stato premuto il pulsante tattile errato).
  * 
- * Ad ogni partita, viene azzerato il punteggio.
+ * Vengono utilizzati i metodi di MiniTimer1 stop e reset 
+ * per gestire la nuova partita che - a breve - verrà riavviata.
  * 
 */
 void timesUp(){
   restartSystem = true;
+  MiniTimer1.stop();
+  MiniTimer1.reset();
+  MiniTimer1.setPeriod(gameTime*10000);
+  MiniTimer1.start();
+}
+
+void interruptTimer(void){
+  endTimer = true;  
 }
